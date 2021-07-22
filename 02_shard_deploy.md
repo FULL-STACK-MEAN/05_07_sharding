@@ -167,6 +167,7 @@ db.runners.insert(runners)
 db.runners.getShardDistribution() // La distribución
 
 sh.status() // Los datos del sharding cluster
+sh.status({verbose: true}) // Si el número de chunks es muy grande
 
 --- Sharding Status --- 
 ...

@@ -32,3 +32,37 @@ El inconveniente es que pueden desencadenarse mas migraciones que afecten al ren
 use config
 
 db.settings.save({_id: "chunksize", value: 4}) // Tamaño en megas
+
+## Procedimiento de migración
+
+1.- Inicia el proceso, las operaciones sobre los documentos del chunk se mantienen al shard de origen.
+
+2.- Se crea el nuevo chunk en el destino y se realiza una actualización del índice con los nuevos
+documentos en el shard de destino.
+
+3.- Escritura de los documentos en el shard de destino.
+
+4.- Sincronización del chunk de destino con el de origen por si se producen
+    actualizaciones durante el proceso.
+
+5.- Actualiza la info del configserver sobre los chunk y shard afectados.
+
+6.- Las operaciones se redirigen al chuck destino y el chunk origen es eliminado.
+
+## Balancer
+
+El balancer de los cluster sharding realiza las migraciones de manera automática de acuerdo
+a los criterios anteriores. Por defecto está activado pero, por motivos de rendimiento podríamos
+desactivarlo.
+
+Disponemos de una serie de métodos para adminsitrar el balancer desde mongos:
+
+sh.getBalancerState() // Si el balanceador está o no activado
+
+sh.isBalancerRunning() // Si el balanceador está produciendo migraciones de chunks
+
+sh.stopBalancer()
+
+sh.startBalancer()
+
+También hay un procedimiento para programar la activación del balancer en ventanas de mantenimiento.
