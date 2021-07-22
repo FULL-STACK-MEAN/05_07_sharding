@@ -158,4 +158,82 @@ for (i = 0; i < 2000000; i++) {
     })
 }
 
+use marathon
 
+db.runners.insert(runners)
+
+4.- Comprobamos la distribución en los shard de los documentos
+
+db.runners.getShardDistribution() // La distribución
+
+sh.status() // Los datos del sharding cluster
+
+--- Sharding Status --- 
+...
+  databases:
+...
+    {  "_id" : "marathon",  
+       "primary" : "shard2ServerGetafe",  
+       "partitioned" : true,  
+       "version" : {  "uuid" : UUID("c3505539-7bed-48c4-9c56-929f7db0a35a"),  "lastMod" : 1 } }
+                marathon.runners
+                        shard key: { "surname1" : 1, "surname2" : 1 }
+                        unique: false
+                        balancing: true
+                        chunks:
+                                shard1ServerGetafe      2
+                                shard2ServerGetafe      3
+                        { "surname1" : { "$minKey" : 1 }, "surname2" : { "$minKey" : 1 } } -->> { "surname1" : "Etxevarría", "surname2" : "Etxevarría" } on : shard1ServerGetafe Timestamp(3, 0) 
+                        
+                        { "surname1" : "Etxevarría", "surname2" : "Etxevarría" } -->> { "surname1" : "García", "surname2" : "López" } on : shard1ServerGetafe Timestamp(5, 0) 
+                       
+                        { "surname1" : "García", "surname2" : "López" } -->> { "surname1" : "Nadal", "surname2" : "Novo" } on : shard2ServerGetafe Timestamp(4, 2) 
+                       
+                        { "surname1" : "Nadal", "surname2" : "Novo" } -->> { "surname1" : "Novo", "surname2" : "Sánchez" } on : shard2ServerGetafe Timestamp(4, 3) 
+                       
+                        { "surname1" : "Novo", "surname2" : "Sánchez" } -->> { "surname1" : { "$maxKey" : 1 }, "surname2" : { "$maxKey" : 1 } } on : shard2ServerGetafe Timestamp(5, 1) 
+
+Hay otros dos métodos importantes para monitorizar el estado del shardingcluster
+
+sh.getBalancerState() // Si el balanceador está o no activado
+
+sh.isBalancerRunning() // Si el balanceador está produciendo migraciones de chunks
+
+## Añadir nuevos shard al cluster
+
+Se puede hacer para seguir escalando horizontalmente el cluster
+
+1.- Directorios
+
+shard3Server1
+shard3Server2
+shard3Server3
+
+2.- Comando o archivo de configuración
+
+mongod --replSet shard3ServerGetafe --dbpath shard3Server1 --port 27301 --shardsvr
+mongod --replSet shard3ServerGetafe --dbpath shard3Server2 --port 27302 --shardsvr
+mongod --replSet shard3ServerGetafe --dbpath shard3Server3 --port 27303 --shardsvr
+
+configShard3Server1.conf
+configShard3Server2.conf
+configShard3Server3.conf
+
+3.- Lanzamos la configuración del tercer cluster shard
+
+mongo --port 27301
+
+rs.initiate({
+    _id: "shard3ServerGetafe",
+    members: [
+        {_id: 0, host: "localhost:27301"},
+        {_id: 1, host: "localhost:27302"},
+        {_id: 2, host: "localhost:27303"}
+    ]
+})
+
+4.- Añadir desde mongos el replicaset como nuevo shard
+
+mongo --port 27000
+
+sh.addShard("shard3ServerGetafe/localhost:27301,localhost:27302,localhost:27303")
