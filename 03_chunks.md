@@ -66,3 +66,11 @@ sh.stopBalancer()
 sh.startBalancer()
 
 También hay un procedimiento para programar la activación del balancer en ventanas de mantenimiento.
+
+## Jumbo chunks
+
+Estado del chunk en el que no puede dividirse automáticamente (porque su rango ha quedado
+limitado a un solo valor) y supera el tamaño máximo. En ese caso el chunk sigue almacenando
+los documentos pero MongoDB los marca como jumbo y no permite que se puedan mover de shard.
+
+Hace perder la distribución uniforme en el cluster.
